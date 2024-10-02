@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regex Tester++</title>
+</head>
+<body style="font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif; margin: 1rem;">
+    <div style="display: flex;">
+		<div style="display: flex; align-items: center; flex-direction: column; width: 70%;">
+			<span style="font-weight: bold; font-size: xx-large; margin-bottom: 1rem;">Regex Tester++</span>
+			<label for="input" style="color: gray; font-style: italic; margin-bottom: 8px;">Insira seu texto de teste</label>
+			<div style="display: flex; flex-direction: column; align-items: center;">
+				<textarea id="input" placeholder="Digite aqui" style="height: 6rem; width: 30rem;"></textarea>
+				<button onclick="testRegex()" style="height: 2.4rem; width: 12rem; background-color: rgb(5, 5, 53); margin-top: 0.5rem;">
+					<span style="font-weight: bold; color: white;">Testar</span>
+				</button>
+			</div>			
+			<hr style="width: 75%; height: 0.1rem; background-color: rgb(5, 5, 53);">
+			<button onclick="addRegex()" style="margin-top: 10px; background-color: rgb(38, 38, 140); color: white; height: 2.4rem; width: 10rem;">Adicionar Regex</button>
+			<div id="regexContainer" style="margin-top: 12px; display: flex; flex-direction: column; align-items: center;">
+				<span style="font-weight: bold; font-size: x-large; margin-bottom: 0.5rem;">Regex</span>    
+			</div>
+		</div>
+		<div style="display: flex; width: 30%; flex-direction: column; align-items: center; margin: 1rem;">
+			<div style="display: flex; align-items: center; flex-direction: column; width: 70%; margin-bottom: 1rem;">
+				<label for="importInput" style="color: gray; font-style: italic; margin-bottom: 8px;">Importar Regexes</label>
+				<textarea id="importInput" placeholder="Cole aqui seu padrão de exportação" style="height: 100px; width: 30rem;"></textarea>
+				<button onclick="importRegexes()" style="background-color: rgb(38, 38, 140); height: 2.4rem; width: 10rem; margin-top: 0.5rem;">
+					<span style="font-weight: bold; color: white;">Importar Regexes</span>
+				</button>
+			</div>
+			<hr style="width: 100%; height: 0.1rem; background-color: rgb(5, 5, 53);">
+			<div style="display: flex; gap: 2rem;">
+				<button onclick="exportRegexes()" style="background-color: rgb(5, 5, 53); color: white; height: 2.4rem; width: 10rem;">Exportar Regexes</button>
+				<button onclick="copyToClipboard()" style="background-color: rgb(38, 38, 140); color: white; height: 2.4rem; width: 10rem;">Copiar para Área de Transferência</button>
+				<button onclick="clearExport()" style="background-color: rgb(89, 89, 89); color: white; height: 2.4rem; width: 10rem;">Limpar Exportação</button>
+			</div>
+			<pre id="exportResult" style="background-color: #f4f4f4; padding: 1rem; width: 100%; overflow: auto;">
+Padrão de exportação:
+-- NOME
+REGEX
+			</pre>
+		</div>
+	</div>
+
+    <script>
+        let regexId = 0;
+
+        function testRegex() {
+			const input = document.getElementById('input').value;
+			const lines = input.split(/\r?\n/); // Divide o input por linha
+			const regexItems = document.querySelectorAll('.regexItem');
+			
+			regexItems.forEach((item) => {
+				const regexInput = item.querySelector('.regexInput').value;
+				const resultElement = item.querySelector('.resultValue');
+				let results = [];
+
+				try {
+					const regex = new RegExp(regexInput, 'gim');
+					lines.forEach((line, index) => {
+						const matches = [...line.matchAll(regex)];
+						if (matches.length > 0) {
+							results.push(`<br>Linha ${index + 1}: ${matches.map(m => m[0]).join(', ')}`);
+						}
+					});
+					resultElement.innerHTML = results.length > 0 ? results.join('\n') : "Não encontrado";
+				} catch (e) {
+					resultElement.innerHTML = "Regex inválida";
+				}
+			});
+		}
+
+        function addRegex() {
+            const container = document.getElementById('regexContainer');
+            const regexItem = document.createElement('div');
+            regexItem.className = 'regexItem';
+            regexItem.id = `regexItem-${regexId}`;
+            regexItem.style = 'display: flex; flex-direction: column; margin-top: 1rem';
+            regexItem.innerHTML = `
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+					<button onclick="removeRegex(${regexId})" style="background-color: rgb(140, 38, 38); color: white; height: 2rem; width: 2rem; border-radius: 10px;">X</button>
+					<input type="text" class="regexName" placeholder="Nome da Regex" style="height: 2rem; width: 8rem;">
+					<input type="text" class="regexInput" placeholder="Digite sua regex" style="height: 2rem; width: 30rem;">
+				</div>
+				<span style="font-weight: bold;">Resultados: <span class="resultValue">Ainda não testado</span></span>
+            `;
+            container.appendChild(regexItem);
+            regexId++;
+        }
+
+        function removeRegex(id) {
+            const regexItem = document.getElementById(`regexItem-${id}`);
+            regexItem.remove();
+        }
+
+        function exportRegexes() {
+			const regexItems = document.querySelectorAll('.regexItem');
+			let exportData = '';
+
+			regexItems.forEach((item) => {
+				const regexName = item.querySelector('.regexName').value;
+				const regexInput = item.querySelector('.regexInput').value;
+				if (regexName && regexInput) {
+					exportData += `-- ${regexName}\n${regexInput}\n\n`;
+				}
+			});
+
+			document.getElementById('exportResult').textContent = exportData.trim();
+		}
+
+		function copyToClipboard() {
+			const exportResult = document.getElementById('exportResult').textContent;
+			navigator.clipboard.writeText(exportResult).then(() => {
+				alert("Copiado para a área de transferência!");
+			}).catch(err => {
+				console.error('Erro ao copiar: ', err);
+			});
+		}
+
+		function importRegexes() {
+			const importInput = document.getElementById('importInput').value;
+			const regexLines = importInput.split('\n').filter(line => line.trim() !== '');
+			const regexContainer = document.getElementById('regexContainer');
+
+			let currentName = '';
+			let currentRegex = '';
+
+			regexLines.forEach((line) => {
+				if (line.startsWith('-- ')) {
+					if (currentName && currentRegex) {
+						addRegexToContainer(currentName, currentRegex, regexContainer);
+					}
+					currentName = line.substring(3).trim();
+					currentRegex = '';
+				} else {
+					currentRegex = line.trim();
+				}
+			});
+
+			// Adiciona a última regex, se houver
+			if (currentName && currentRegex) {
+				addRegexToContainer(currentName, currentRegex, regexContainer);
+			}
+
+			// Limpa o campo de importação
+			document.getElementById('importInput').value = '';
+		}
+
+		function addRegexToContainer(name, regex, container) {
+			const regexItem = document.createElement('div');
+			regexItem.className = 'regexItem';
+			regexItem.style = 'display: flex; flex-direction: column; margin-top: 1rem';
+			regexItem.innerHTML = `
+				<div style="display: flex; gap: 0.5rem; align-items: center;">
+					<button onclick="removeRegex(${regexId})" style="background-color: rgb(140, 38, 38); color: white; height: 2rem; width: 2rem; border-radius: 10px;">X</button>
+					<input type="text" class="regexName" value="${name}" style="height: 2rem; width: 8rem;">
+					<input type="text" class="regexInput" value="${regex}" style="height: 2rem; width: 30rem;">
+				</div>
+				<span style="font-weight: bold;">Resultados: <span class="resultValue">Ainda não testado</span></span>
+			`;
+			container.appendChild(regexItem);
+			regexId++;
+		}
+
+		function clearExport() {
+			document.getElementById('exportResult').innerHTML = "Padrão de exportação:\n-- NOME\nREGEX";
+		}
+
+    </script>
+</body>
+</html>
